@@ -9,7 +9,7 @@
 	});
 	
 	document.write = function(str) {
-
+		
 		// GA_googleFillSlotWithSize calls call document.write which should
 		// trigger this case
 		if (checkForDFPAd(str))
@@ -20,9 +20,14 @@
 		if (checkForDFPLoader(str))
 			return;
 		
+		
 		// otherwise, just use regular document.write. See this documentation:
 		// http://paulbakaus.com/2009/02/12/defer-documentwrite/
-		return top.execScript ? _docwrite(str) : _docwrite.call(document, str);
+		if (navigator.userAgent.indexOf('MSIE') > -1) {
+			_docwrite(str)
+		} else { 
+			_docwrite.call(document, str);
+		}
 	}
 	
 	function displayAd(slotname) {
