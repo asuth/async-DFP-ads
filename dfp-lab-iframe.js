@@ -55,7 +55,6 @@
 			urls.push(match[1]);
 				
 		if (urls.length) {
-			console.log('loading url', urls);
 			// load the document.write scripts in order
 			// check at the end if we have iframerendering available
 			$LAB.script(urls).wait(function(){
