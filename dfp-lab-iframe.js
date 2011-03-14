@@ -17,11 +17,11 @@
 	}
 	
 	function dfpReady() {
-		for (var i = 0, m = QAds.length; i < m; i++) {
-			displayAd(QAds[i]);
+		for (var i = 0, m = DFPads.length; i < m; i++) {
+			displayAd(DFPads[i]);
 		}
 	
-		QAds = {
+		DFPads = {
 			push : function(slotname) {
 				myads.push(slotname);
 				displayAd(slotname);
