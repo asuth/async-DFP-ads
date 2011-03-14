@@ -1,57 +1,84 @@
-/***
-Author : Sajal Kayan
-DFP Async Loader
+// WORK IN PROGRESS
+// iframe loader doc: http://www.google.com/support/dfp_sb/bin/answer.py?hl=en&answer=90777
+(function () {
 
-This method uses DFP's iframe tagging method which *does not* allow expandable ad units!
+	var DFPpubid = "ca-pub-3482570618048850";
+	var myads = [];
+	
+	$LAB.script("http://partner.googleadservices.com/gampad/google_service.js").wait(function() {
+		GS_googleAddAdSenseService(DFPpubid);
+		GS_googleEnableAllServices(); // This has a document.write which we intercept
+	});
+	
+	function displayAd(slotname) {
+		var container = document.getElementById('dfp-ad-'+slotname);		
+		//step 5: The actual function with document.write()'s an iframe
+		GA_googleFillSlotWithSize(DFPpubid, slotname, container.offsetWidth, container.offsetHeight);
+	}
+	
+	function dfpReady() {
+		for (var i = 0, m = QAds.length; i < m; i++) {
+			displayAd(QAds[i]);
+		}
+	
+		QAds = {
+			push : function(slotname) {
+				myads.push(slotname);
+				displayAd(slotname);
+			}
+		};
+	}
+	
+	function checkForDFPAd(str) {
+		
+		var escaped_slots = [],
+			i = myads.length;
+		
+		while(i--) {
+			escaped_slots[i] = myads[i].replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+		}
+	
+		var re = new RegExp('google_ads_div_('+escaped_slots.join('|')+')');
+		if (match = re.exec(str)) {
+			document.getElementById('dfp-ad-'+match[1]).innerHTML = str;
+			return true;
+		}
+	}
+	
+	function checkForDFPLoader(str) {
+		var re = /script src=['"](https?:\/\/partner.googleadservices.+?)['"]/ig,
+			urls = [],
+			match;
+	
+		// global match of script urls (like preg_match_all)
+		while (match = re.exec(str))
+			urls.push(match[1]);
+				
+		if (urls.length) {
+			console.log('loading url', urls);
+			// load the document.write scripts in order
+			// check at the end if we have iframerendering available
+			$LAB.script(urls).wait(function(){
+				if (typeof GA_googleUseIframeRendering !== 'undefined') {
+					GA_googleUseIframeRendering();
+					dfpReady();
+				}
+			});
+			return true;
+		}
+		return false;
+	}
+	
+	var _docwrite = document.write;
+	document.write = function(str) {
+		
+		if (checkForDFPAd(str))
+			return;
+		
+		if (checkForDFPLoader(str))
+			return;
 
-IMPORTANT: This script must be called AFTER LABjs is loaded.
-
-Copyright (c) 2011, Sajal Kayan
-All rights reserved.
-
-Released under The BSD license as defined at the following URL:-
-http://www.opensource.org/licenses/bsd-license.php
-
-*/
-
-// usage DFPasync(adslots, DFPpubid);
-var DFPasync = (function(adslots, DFPpubid){
-  function docwrt(str){
-    var script = str.replace(/(.*)\=\"/g, '').replace(/\"(.*)/g, '');
-    if (script.match(/cookie\.js/g)){
-      // When user does not have a tracking cookie installed, Google writes a script 
-      // tag to install the cookie.
-      $LAB.script(script).wait();
-    } else {
-      $LAB.script(script).wait(function(){
-        // (Step 4)Still bootstrapping -- no support yet(TODO) for optional step 3 i.e. setting page attributes
-        GA_googleUseIframeRendering();
-        // following function makes the magic happen!
-        function Wrapper_googleFillSlotWithSize(targetad){
-          var docwrttemp = function(str){
-            // fills the html from GA_googleFillSlotWithSize into the desired element
-            document.getElementById(targetad.target).innerHTML = str;
-          };  
-          document.write = docwrttemp; // intercepts document.write from GA_googleFillSlotWithSize()
-          //step 5: The actual function with document.write()'s an iframe
-          GA_googleFillSlotWithSize(targetad.pubid, targetad.slotname, targetad.width, targetad.height);
-        }
-        for (var x in adslots){
-          //using wrapper to call GA_googleFillSlotWithSize
-          Wrapper_googleFillSlotWithSize(adslots[x]);
-        }
-      });
-    }
-  }
-  
-  if (adslots){ //load DFP only if global adslots are loaded
-    document.write = docwrt; //intercepts document.write from below script
-    // iframe loader doc: http://www.google.com/support/dfp_sb/bin/answer.py?hl=en&answer=90777
-    // (Step 1): The first script tag -- Execution starts here
-    $LAB.script("http://partner.googleadservices.com/gampad/google_service.js").wait(function(){
-      // (Step 2)
-      GS_googleAddAdSenseService(DFPpubid); // DFPpubid = global variable ca-pub-XXXX
-      GS_googleEnableAllServices(); // This has a document.write which we intercept using docwrt() function
-    });
-  }
-});
+		// http://paulbakaus.com/2009/02/12/defer-documentwrite/
+		return top.execScript ? _docwrite(str) : _docwrite.call(document, str);
+	}
+}());
