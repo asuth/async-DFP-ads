@@ -18,9 +18,10 @@
 	
 	function dfpReady() {
 		for (var i = 0, m = DFPads.length; i < m; i++) {
+			myads.push(DFPads[i]);
 			displayAd(DFPads[i]);
 		}
-	
+			
 		DFPads = {
 			push : function(slotname) {
 				myads.push(slotname);
@@ -30,14 +31,14 @@
 	}
 	
 	function checkForDFPAd(str) {
-		
+				
 		var escaped_slots = [],
 			i = myads.length;
 		
 		while(i--) {
 			escaped_slots[i] = myads[i].replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 		}
-	
+			
 		var re = new RegExp('google_ads_div_('+escaped_slots.join('|')+')');
 		if (match = re.exec(str)) {
 			document.getElementById('dfp-ad-'+match[1]).innerHTML = str;
@@ -70,7 +71,7 @@
 	
 	var _docwrite = document.write;
 	document.write = function(str) {
-		
+				
 		if (checkForDFPAd(str))
 			return;
 		
