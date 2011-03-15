@@ -1,4 +1,7 @@
 (function() {
+	
+	if (location.protocol == 'https:')
+		return;
 
 	var myads = [],
 		_docwrite = document.write;
